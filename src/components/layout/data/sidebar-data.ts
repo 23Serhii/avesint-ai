@@ -1,204 +1,164 @@
 import {
-  Construction,
   LayoutDashboard,
-  Monitor,
-  Bug,
+  Map,
   ListTodo,
-  FileX,
-  HelpCircle,
-  Lock,
-  Bell,
-  Package,
-  Palette,
-  ServerOff,
+  Radar,
   Settings,
-  Wrench,
-  UserCog,
-  UserX,
-  Users,
-  MessagesSquare,
-  ShieldCheck,
-  AudioWaveform,
   Command,
-  GalleryVerticalEnd,
+  Users,
+  ShieldCheck,
+  FileText,
+  BarChart3,
+  ScrollText,
+  Newspaper,
+  Crosshair,
+  LogIn,
+  UserPlus,
+  KeyRound,
+  Bell,
+  Wrench,
+
 } from 'lucide-react'
-import { ClerkLogo } from '@/assets/clerk-logo'
-import { type SidebarData } from '../types'
+
+import type { SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
   user: {
-    name: 'satnaing',
-    email: 'satnaingdev@gmail.com',
+    name: 'Оператор OSINT',
+    email: 'ops@avesint.ai',
     avatar: '/avatars/shadcn.jpg',
   },
   teams: [
     {
-      name: 'Shadcn Admin',
+      name: 'AVESINT.AI',
       logo: Command,
-      plan: 'Vite + ShadcnUI',
+      plan: 'OSINT-платформа',
     },
-    {
-      name: 'Acme Inc',
-      logo: GalleryVerticalEnd,
-      plan: 'Enterprise',
-    },
-    {
-      name: 'Acme Corp.',
-      logo: AudioWaveform,
-      plan: 'Startup',
-    },
+
   ],
   navGroups: [
     {
-      title: 'General',
+      title: 'Оперативна робота',
       items: [
         {
-          title: 'Dashboard',
+          title: 'Огляд',
           url: '/',
           icon: LayoutDashboard,
         },
         {
-          title: 'Tasks',
-          url: '/tasks',
+          title: 'Стрічка подій',
+          url: '/events',
           icon: ListTodo,
         },
         {
-          title: 'Apps',
-          url: '/apps',
-          icon: Package,
+          title: 'Карта подій',
+          url: '/map',
+          icon: Map,
         },
         {
-          title: 'Chats',
-          url: '/chats',
-          badge: '3',
-          icon: MessagesSquare,
+          title: 'Ревʼю / верифікація',
+          url: '/review',
+          icon: Radar,
         },
         {
-          title: 'Users',
+          title: 'Новини / парсер',
+          url: '/news-parser',
+          icon: Newspaper,
+        },
+        {
+          title: 'Обʼєкти та цілі',
+          url: '/entities',
+          icon: Crosshair,
+        },
+      ],
+    },
+    {
+      title: 'Аналітика та звітність',
+      items: [
+        {
+          title: 'Аналітика',
+          url: '/analytics',
+          icon: BarChart3,
+        },
+        {
+          title: 'Звіти',
+          url: '/reports',
+          icon: FileText,
+        },
+        {
+          title: 'Журнал подій',
+          url: '/audit-log',
+          icon: ScrollText,
+        },
+      ],
+    },
+    {
+      title: 'Користувачі та доступ',
+      items: [
+        {
+          title: 'Задачі',
+          url: '/tasks',
+          icon: ShieldCheck,
+        },
+        {
+          title: 'Користувачі',
           url: '/users',
           icon: Users,
         },
         {
-          title: 'Secured by Clerk',
-          icon: ClerkLogo,
-          items: [
-            {
-              title: 'Sign In',
-              url: '/clerk/sign-in',
-            },
-            {
-              title: 'Sign Up',
-              url: '/clerk/sign-up',
-            },
-            {
-              title: 'User Management',
-              url: '/clerk/user-management',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      title: 'Pages',
-      items: [
-        {
-          title: 'Auth',
+          title: 'Ролі та доступи',
+          url: '/roles',
           icon: ShieldCheck,
-          items: [
-            {
-              title: 'Sign In',
-              url: '/sign-in',
-            },
-            {
-              title: 'Sign In (2 Col)',
-              url: '/sign-in-2',
-            },
-            {
-              title: 'Sign Up',
-              url: '/sign-up',
-            },
-            {
-              title: 'Forgot Password',
-              url: '/forgot-password',
-            },
-            {
-              title: 'OTP',
-              url: '/otp',
-            },
-          ],
-        },
-        {
-          title: 'Errors',
-          icon: Bug,
-          items: [
-            {
-              title: 'Unauthorized',
-              url: '/errors/unauthorized',
-              icon: Lock,
-            },
-            {
-              title: 'Forbidden',
-              url: '/errors/forbidden',
-              icon: UserX,
-            },
-            {
-              title: 'Not Found',
-              url: '/errors/not-found',
-              icon: FileX,
-            },
-            {
-              title: 'Internal Server Error',
-              url: '/errors/internal-server-error',
-              icon: ServerOff,
-            },
-            {
-              title: 'Maintenance Error',
-              url: '/errors/maintenance-error',
-              icon: Construction,
-            },
-          ],
         },
       ],
     },
     {
-      title: 'Other',
+      title: 'Система',
       items: [
         {
-          title: 'Settings',
+          title: 'Налаштування',
           icon: Settings,
           items: [
             {
-              title: 'Profile',
-              url: '/settings',
-              icon: UserCog,
-            },
-            {
-              title: 'Account',
+              title: 'Обліковий запис',
               url: '/settings/account',
               icon: Wrench,
             },
             {
-              title: 'Appearance',
-              url: '/settings/appearance',
-              icon: Palette,
-            },
-            {
-              title: 'Notifications',
+              title: 'Сповіщення',
               url: '/settings/notifications',
               icon: Bell,
             },
-            {
-              title: 'Display',
-              url: '/settings/display',
-              icon: Monitor,
-            },
+
           ],
         },
+      ],
+    },
+    {
+      title: 'Автентифікація',
+      items: [
         {
-          title: 'Help Center',
-          url: '/help-center',
-          icon: HelpCircle,
+          title: 'Вхід',
+          url: '/sign-in',
+          icon: LogIn,
         },
+
+        {
+          title: 'Реєстрація',
+          url: '/sign-up',
+          icon: UserPlus,
+        },
+        {
+          title: 'Відновлення пароля',
+          url: '/forgot-password',
+          icon: KeyRound,
+        },
+        {
+          title: 'OTP',
+          url: '/otp',
+          icon: KeyRound,
+        },
+
       ],
     },
   ],

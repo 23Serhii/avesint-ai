@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
+
 import { showSubmittedData } from '@/lib/show-submitted-data'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -28,44 +29,43 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { DatePicker } from '@/components/date-picker'
 
 const languages = [
+  { label: 'Українська', value: 'uk' },
   { label: 'English', value: 'en' },
-  { label: 'French', value: 'fr' },
-  { label: 'German', value: 'de' },
-  { label: 'Spanish', value: 'es' },
-  { label: 'Portuguese', value: 'pt' },
-  { label: 'Russian', value: 'ru' },
-  { label: 'Japanese', value: 'ja' },
-  { label: 'Korean', value: 'ko' },
-  { label: 'Chinese', value: 'zh' },
 ] as const
 
-const accountFormSchema = z.object({
-  name: z
+const userSettingsFormSchema = z.object({
+  fullName: z
     .string()
-    .min(1, 'Please enter your name.')
-    .min(2, 'Name must be at least 2 characters.')
-    .max(30, 'Name must not be longer than 30 characters.'),
-  dob: z.date('Please select your date of birth.'),
-  language: z.string('Please select a language.'),
+    .min(5, 'Введіть повне ПІБ.')
+    .max(80, 'ПІБ не має перевищувати 80 символів.'),
+  callsign: z
+    .string()
+    .min(2, 'Позивний має містити щонайменше 2 символи.')
+    .max(30, 'Позивний не має перевищувати 30 символів.'),
+  email: z
+    .string()
+    .email('Введіть коректну службову електронну адресу.'),
+  language: z
+    .string('Оберіть мову інтерфейсу.')
+    .min(1, 'Оберіть мову інтерфейсу.'),
 })
 
-type AccountFormValues = z.infer<typeof accountFormSchema>
+type UserSettingsFormValues = z.infer<typeof userSettingsFormSchema>
 
-// This can come from your database or API.
-const defaultValues: Partial<AccountFormValues> = {
-  name: '',
+const defaultValues: Partial<UserSettingsFormValues> = {
+  language: 'uk',
 }
 
 export function AccountForm() {
-  const form = useForm<AccountFormValues>({
-    resolver: zodResolver(accountFormSchema),
+  const form = useForm<UserSettingsFormValues>({
+    resolver: zodResolver(userSettingsFormSchema),
     defaultValues,
+    mode: 'onChange',
   })
 
-  function onSubmit(data: AccountFormValues) {
+  function onSubmit(data: UserSettingsFormValues) {
     showSubmittedData(data)
   }
 
@@ -74,41 +74,75 @@ export function AccountForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
         <FormField
           control={form.control}
-          name='name'
+          name='fullName'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>ПІБ</FormLabel>
               <FormControl>
-                <Input placeholder='Your name' {...field} />
+                <Input
+                  placeholder='Прізвище Ім’я По батькові'
+                  autoComplete='name'
+                  {...field}
+                />
               </FormControl>
               <FormDescription>
-                This is the name that will be displayed on your profile and in
-                emails.
+                Повне ПІБ співробітника для внутрішніх журналів та звітів.
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
-          name='dob'
+          name='callsign'
           render={({ field }) => (
-            <FormItem className='flex flex-col'>
-              <FormLabel>Date of birth</FormLabel>
-              <DatePicker selected={field.value} onSelect={field.onChange} />
+            <FormItem>
+              <FormLabel>Позивний у системі</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder='Наприклад: Орел-21'
+                  autoComplete='off'
+                  {...field}
+                />
+              </FormControl>
               <FormDescription>
-                Your date of birth is used to calculate your age.
+                Внутрішній позивний / нік, який буде відображатися в аналітичній
+                панелі та логах подій.
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name='email'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Службова електронна пошта</FormLabel>
+              <FormControl>
+                <Input
+                  type='email'
+                  placeholder='name@mil.gov.ua'
+                  autoComplete='email'
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                Використовується для службових сповіщень та відновлення доступу.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name='language'
           render={({ field }) => (
             <FormItem className='flex flex-col'>
-              <FormLabel>Language</FormLabel>
+              <FormLabel>Мова інтерфейсу</FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -116,23 +150,23 @@ export function AccountForm() {
                       variant='outline'
                       role='combobox'
                       className={cn(
-                        'w-[200px] justify-between',
+                        'w-[240px] justify-between',
                         !field.value && 'text-muted-foreground'
                       )}
                     >
                       {field.value
                         ? languages.find(
-                            (language) => language.value === field.value
-                          )?.label
-                        : 'Select language'}
+                          (language) => language.value === field.value
+                        )?.label
+                        : 'Оберіть мову'}
                       <CaretSortIcon className='ms-2 h-4 w-4 shrink-0 opacity-50' />
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className='w-[200px] p-0'>
+                <PopoverContent className='w-[240px] p-0'>
                   <Command>
-                    <CommandInput placeholder='Search language...' />
-                    <CommandEmpty>No language found.</CommandEmpty>
+                    <CommandInput placeholder='Пошук мови…' />
+                    <CommandEmpty>Мову не знайдено.</CommandEmpty>
                     <CommandGroup>
                       <CommandList>
                         {languages.map((language) => (
@@ -140,12 +174,15 @@ export function AccountForm() {
                             value={language.label}
                             key={language.value}
                             onSelect={() => {
-                              form.setValue('language', language.value)
+                              form.setValue('language', language.value, {
+                                shouldValidate: true,
+                                shouldDirty: true,
+                              })
                             }}
                           >
                             <CheckIcon
                               className={cn(
-                                'size-4',
+                                'size-4 me-2',
                                 language.value === field.value
                                   ? 'opacity-100'
                                   : 'opacity-0'
@@ -160,13 +197,14 @@ export function AccountForm() {
                 </PopoverContent>
               </Popover>
               <FormDescription>
-                This is the language that will be used in the dashboard.
+                Мова, яка буде використана в інтерфейсі ОСINT-панелі.
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type='submit'>Update account</Button>
+
+        <Button type='submit'>Зберегти налаштування</Button>
       </form>
     </Form>
   )

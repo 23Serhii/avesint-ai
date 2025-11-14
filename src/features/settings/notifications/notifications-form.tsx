@@ -21,7 +21,7 @@ const notificationsFormSchema = z.object({
   type: z.enum(['all', 'mentions', 'none'], {
     error: (iss) =>
       iss.input === undefined
-        ? 'Please select a notification type.'
+        ? 'Оберіть тип сповіщень.'
         : undefined,
   }),
   mobile: z.boolean().default(false).optional(),
@@ -33,7 +33,7 @@ const notificationsFormSchema = z.object({
 
 type NotificationsFormValues = z.infer<typeof notificationsFormSchema>
 
-// This can come from your database or API.
+// Це можна підтягувати з БД / API.
 const defaultValues: Partial<NotificationsFormValues> = {
   communication_emails: false,
   marketing_emails: false,
@@ -58,7 +58,7 @@ export function NotificationsForm() {
           name='type'
           render={({ field }) => (
             <FormItem className='relative space-y-3'>
-              <FormLabel>Notify me about...</FormLabel>
+              <FormLabel>Отримувати сповіщення про</FormLabel>
               <FormControl>
                 <RadioGroup
                   onValueChange={field.onChange}
@@ -70,7 +70,7 @@ export function NotificationsForm() {
                       <RadioGroupItem value='all' />
                     </FormControl>
                     <FormLabel className='font-normal'>
-                      All new messages
+                      Усі нові події
                     </FormLabel>
                   </FormItem>
                   <FormItem className='flex items-center'>
@@ -78,14 +78,16 @@ export function NotificationsForm() {
                       <RadioGroupItem value='mentions' />
                     </FormControl>
                     <FormLabel className='font-normal'>
-                      Direct messages and mentions
+                      Прямі згадки, доручення та задачі
                     </FormLabel>
                   </FormItem>
                   <FormItem className='flex items-center'>
                     <FormControl>
                       <RadioGroupItem value='none' />
                     </FormControl>
-                    <FormLabel className='font-normal'>Nothing</FormLabel>
+                    <FormLabel className='font-normal'>
+                      Не отримувати сповіщення
+                    </FormLabel>
                   </FormItem>
                 </RadioGroup>
               </FormControl>
@@ -93,8 +95,9 @@ export function NotificationsForm() {
             </FormItem>
           )}
         />
+
         <div className='relative'>
-          <h3 className='mb-4 text-lg font-medium'>Email Notifications</h3>
+          <h3 className='mb-4 text-lg font-medium'>Сповіщення електронною поштою</h3>
           <div className='space-y-4'>
             <FormField
               control={form.control}
@@ -103,10 +106,10 @@ export function NotificationsForm() {
                 <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4'>
                   <div className='space-y-0.5'>
                     <FormLabel className='text-base'>
-                      Communication emails
+                      Системні сповіщення
                     </FormLabel>
                     <FormDescription>
-                      Receive emails about your account activity.
+                      Листи щодо активності облікового запису та змін у системі.
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -118,6 +121,7 @@ export function NotificationsForm() {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name='marketing_emails'
@@ -125,10 +129,10 @@ export function NotificationsForm() {
                 <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4'>
                   <div className='space-y-0.5'>
                     <FormLabel className='text-base'>
-                      Marketing emails
+                      Інформаційні розсилки
                     </FormLabel>
                     <FormDescription>
-                      Receive emails about new products, features, and more.
+                      Оновлення щодо нових функцій платформи, змін у протоколах та інструкціях.
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -140,15 +144,18 @@ export function NotificationsForm() {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name='social_emails'
               render={({ field }) => (
                 <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4'>
                   <div className='space-y-0.5'>
-                    <FormLabel className='text-base'>Social emails</FormLabel>
+                    <FormLabel className='text-base'>
+                      Оперативні сповіщення
+                    </FormLabel>
                     <FormDescription>
-                      Receive emails for friend requests, follows, and more.
+                      Листи про коментарі до ваших звітів, відповіді колег та зміни по задачах.
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -160,15 +167,17 @@ export function NotificationsForm() {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name='security_emails'
               render={({ field }) => (
                 <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4'>
                   <div className='space-y-0.5'>
-                    <FormLabel className='text-base'>Security emails</FormLabel>
+                    <FormLabel className='text-base'>Безпекові сповіщення</FormLabel>
                     <FormDescription>
-                      Receive emails about your account activity and security.
+                      Листи про входи в систему, зміну доступів та підозрілу активність.
+                      Ці сповіщення завжди ввімкнені.
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -184,6 +193,7 @@ export function NotificationsForm() {
             />
           </div>
         </div>
+
         <FormField
           control={form.control}
           name='mobile'
@@ -195,25 +205,26 @@ export function NotificationsForm() {
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <div className='space-y-1 leading-none'>
+              <div className='ms-2 space-y-1 leading-none'>
                 <FormLabel>
-                  Use different settings for my mobile devices
+                  Використовувати окремі налаштування для мобільних пристроїв
                 </FormLabel>
                 <FormDescription>
-                  You can manage your mobile notifications in the{' '}
+                  Керувати мобільними сповіщеннями можна на сторінці{' '}
                   <Link
                     to='/settings'
                     className='underline decoration-dashed underline-offset-4 hover:decoration-solid'
                   >
-                    mobile settings
-                  </Link>{' '}
-                  page.
+                    налаштувань мобільних сповіщень
+                  </Link>
+                  .
                 </FormDescription>
               </div>
             </FormItem>
           )}
         />
-        <Button type='submit'>Update notifications</Button>
+
+        <Button type='submit'>Оновити налаштування сповіщень</Button>
       </form>
     </Form>
   )

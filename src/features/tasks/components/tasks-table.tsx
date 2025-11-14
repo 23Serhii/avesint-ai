@@ -1,19 +1,5 @@
-import { useEffect, useState } from 'react'
-import { getRouteApi } from '@tanstack/react-router'
-import {
-  type SortingState,
-  type VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from '@tanstack/react-table'
-import { cn } from '@/lib/utils'
-import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { useMemo, useState } from 'react'
+import type { Task, TaskPriority, TaskRole, TaskStatus } from '../data/tasks'
 import {
   Table,
   TableBody,
@@ -22,176 +8,233 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
-import { priorities, statuses } from '../data/data'
-import { type Task } from '../data/schema'
-import { DataTableBulkActions } from './data-table-bulk-actions'
-import { tasksColumns as columns } from './tasks-columns'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 
-const route = getRouteApi('/_authenticated/tasks/')
-
-type DataTableProps = {
-  data: Task[]
+type Props = {
+  items: Task[]
 }
 
-export function TasksTable({ data }: DataTableProps) {
-  // Local UI-only states
-  const [rowSelection, setRowSelection] = useState({})
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+type StatusFilter = 'all' | TaskStatus
+type RoleFilter = 'all' | TaskRole
+type PriorityFilter = 'all' | TaskPriority
 
-  // Local state management for table (uncomment to use local-only state, not synced with URL)
-  // const [globalFilter, onGlobalFilterChange] = useState('')
-  // const [columnFilters, onColumnFiltersChange] = useState<ColumnFiltersState>([])
-  // const [pagination, onPaginationChange] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 })
+export function TasksTableSimple({ items }: Props) {
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all')
 
-  // Synced with URL states (updated to match route search schema defaults)
-  const {
-    globalFilter,
-    onGlobalFilterChange,
-    columnFilters,
-    onColumnFiltersChange,
-    pagination,
-    onPaginationChange,
-    ensurePageInRange,
-  } = useTableUrlState({
-    search: route.useSearch(),
-    navigate: route.useNavigate(),
-    pagination: { defaultPage: 1, defaultPageSize: 10 },
-    globalFilter: { enabled: true, key: 'filter' },
-    columnFilters: [
-      { columnId: 'status', searchKey: 'status', type: 'array' },
-      { columnId: 'priority', searchKey: 'priority', type: 'array' },
-    ],
-  })
+  const statusLabel = (s: TaskStatus) => {
+    switch (s) {
+      case 'new':
+        return 'Нова'
+      case 'in_progress':
+        return 'В роботі'
+      case 'done':
+        return 'Виконана'
+    }
+  }
 
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
-    data,
-    columns,
-    state: {
-      sorting,
-      columnVisibility,
-      rowSelection,
-      columnFilters,
-      globalFilter,
-      pagination,
-    },
-    enableRowSelection: true,
-    onRowSelectionChange: setRowSelection,
-    onSortingChange: setSorting,
-    onColumnVisibilityChange: setColumnVisibility,
-    globalFilterFn: (row, _columnId, filterValue) => {
-      const id = String(row.getValue('id')).toLowerCase()
-      const title = String(row.getValue('title')).toLowerCase()
-      const searchValue = String(filterValue).toLowerCase()
+  const roleLabel = (r: TaskRole) => {
+    switch (r) {
+      case 'analyst':
+        return 'Аналітик'
+      case 'duty_officer':
+        return 'Черговий офіцер'
+      case 'section_lead':
+        return 'Керівник напряму'
+      case 'commander':
+        return 'Командир'
+    }
+  }
 
-      return id.includes(searchValue) || title.includes(searchValue)
-    },
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    onPaginationChange,
-    onGlobalFilterChange,
-    onColumnFiltersChange,
-  })
+  const priorityLabel = (p: TaskPriority) => {
+    switch (p) {
+      case 'high':
+        return 'Високий'
+      case 'medium':
+        return 'Середній'
+      case 'low':
+        return 'Низький'
+    }
+  }
 
-  const pageCount = table.getPageCount()
-  useEffect(() => {
-    ensurePageInRange(pageCount)
-  }, [pageCount, ensurePageInRange])
+  const priorityVariant = (p: TaskPriority) => {
+    switch (p) {
+      case 'high':
+        return 'destructive'
+      case 'medium':
+        return 'default'
+      case 'low':
+      default:
+        return 'outline'
+    }
+  }
+
+  const statusVariant = (s: TaskStatus) => {
+    switch (s) {
+      case 'new':
+        return 'outline'
+      case 'in_progress':
+        return 'default'
+      case 'done':
+        return 'secondary'
+      default:
+        return 'outline'
+    }
+  }
+
+  const filteredItems = useMemo(() => {
+    return items.filter((task) => {
+      const text = (task.title + ' ' + task.description).toLowerCase()
+      const q = search.toLowerCase().trim()
+
+      if (q && !text.includes(q)) return false
+      if (statusFilter !== 'all' && task.status !== statusFilter) return false
+      if (roleFilter !== 'all' && task.role !== roleFilter) return false
+      if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false
+
+      return true
+    })
+  }, [items, search, statusFilter, roleFilter, priorityFilter])
 
   return (
-    <div
-      className={cn(
-        'max-sm:has-[div[role="toolbar"]]:mb-16', // Add margin bottom to the table on mobile when the toolbar is visible
-        'flex flex-1 flex-col gap-4'
-      )}
-    >
-      <DataTableToolbar
-        table={table}
-        searchPlaceholder='Filter by title or ID...'
-        filters={[
-          {
-            columnId: 'status',
-            title: 'Status',
-            options: statuses,
-          },
-          {
-            columnId: 'priority',
-            title: 'Priority',
-            options: priorities,
-          },
-        ]}
-      />
-      <div className='overflow-hidden rounded-md border'>
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      className={cn(
-                        header.column.columnDef.meta?.className,
-                        header.column.columnDef.meta?.thClassName
-                      )}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(
-                        cell.column.columnDef.meta?.className,
-                        cell.column.columnDef.meta?.tdClassName
-                      )}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className='h-24 text-center'
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+    <div className="rounded-lg border">
+      {/* Верхня панель */}
+      <div className="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center">
+        <div>
+          <h3 className="font-semibold">Задачі штабу</h3>
+          <p className="text-xs text-muted-foreground">
+            Начальник нарізає задачі підлеглим за ролями (аналітики, чергові, керівники).
+          </p>
+        </div>
+
+        <div className="flex flex-1 flex-wrap items-center gap-2 sm:justify-end">
+          <Input
+            placeholder="Пошук за назвою або описом…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="max-w-xs"
+          />
+
+          <Select
+            value={statusFilter}
+            onValueChange={(v: StatusFilter) => setStatusFilter(v)}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Статус" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Будь-який статус</SelectItem>
+              <SelectItem value="new">Нові</SelectItem>
+              <SelectItem value="in_progress">В роботі</SelectItem>
+              <SelectItem value="done">Виконані</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={roleFilter}
+            onValueChange={(v: RoleFilter) => setRoleFilter(v)}
+          >
+            <SelectTrigger className="w-[170px]">
+              <SelectValue placeholder="Роль" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Всі ролі</SelectItem>
+              <SelectItem value="analyst">Аналітики</SelectItem>
+              <SelectItem value="duty_officer">Чергові офіцери</SelectItem>
+              <SelectItem value="section_lead">Керівники напрямків</SelectItem>
+              <SelectItem value="commander">Командир</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={priorityFilter}
+            onValueChange={(v: PriorityFilter) => setPriorityFilter(v)}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Пріоритет" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Будь-який пріоритет</SelectItem>
+              <SelectItem value="high">Високий</SelectItem>
+              <SelectItem value="medium">Середній</SelectItem>
+              <SelectItem value="low">Низький</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button size="sm" variant="outline">
+            + Нова задача
+          </Button>
+        </div>
       </div>
-      <DataTablePagination table={table} className='mt-auto' />
-      <DataTableBulkActions table={table} />
+
+      {/* Таблиця */}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Назва</TableHead>
+            <TableHead>Роль / виконавець</TableHead>
+            <TableHead>Пріоритет</TableHead>
+            <TableHead>Статус</TableHead>
+            <TableHead className="text-right">Дедлайн</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredItems.map((task) => (
+            <TableRow key={task.id}>
+              <TableCell className="font-medium">
+                {task.title}
+                {task.description && (
+                  <div className="text-xs text-muted-foreground">
+                    {task.description}
+                  </div>
+                )}
+              </TableCell>
+              <TableCell>
+                <div className="text-sm">{roleLabel(task.role)}</div>
+                {task.assignee && (
+                  <div className="text-xs text-muted-foreground">
+                    {task.assignee}
+                  </div>
+                )}
+              </TableCell>
+              <TableCell>
+                <Badge variant={priorityVariant(task.priority) as any}>
+                  {priorityLabel(task.priority)}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Badge variant={statusVariant(task.status) as any}>
+                  {statusLabel(task.status)}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">
+                {task.dueAt
+                  ? new Date(task.dueAt).toLocaleString('uk-UA')
+                  : '—'}
+              </TableCell>
+            </TableRow>
+          ))}
+
+          {filteredItems.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={5} className="py-6 text-center text-sm">
+                Задач немає. Змініть фільтри або створіть нову задачу.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   )
 }
