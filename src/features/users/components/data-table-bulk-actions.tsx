@@ -18,20 +18,28 @@ type DataTableBulkActionsProps<TData> = {
 }
 
 export function DataTableBulkActions<TData>({
-  table,
-}: DataTableBulkActionsProps<TData>) {
+                                              table,
+                                            }: DataTableBulkActionsProps<TData>) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const selectedRows = table.getFilteredSelectedRowModel().rows
 
   const handleBulkStatusChange = (status: 'active' | 'inactive') => {
     const selectedUsers = selectedRows.map((row) => row.original as User)
     toast.promise(sleep(2000), {
-      loading: `${status === 'active' ? 'Activating' : 'Deactivating'} users...`,
+      loading:
+        status === 'active'
+          ? 'Активуємо користувачів…'
+          : 'Деактивуємо користувачів…',
       success: () => {
         table.resetRowSelection()
-        return `${status === 'active' ? 'Activated' : 'Deactivated'} ${selectedUsers.length} user${selectedUsers.length > 1 ? 's' : ''}`
+        return `${
+          status === 'active' ? 'Активовано' : 'Деактивовано'
+        } ${selectedUsers.length} користувач(ів)`
       },
-      error: `Error ${status === 'active' ? 'activating' : 'deactivating'} users`,
+      error:
+        status === 'active'
+          ? 'Помилка під час активації.'
+          : 'Помилка під час деактивації.',
     })
     table.resetRowSelection()
   }
@@ -39,92 +47,96 @@ export function DataTableBulkActions<TData>({
   const handleBulkInvite = () => {
     const selectedUsers = selectedRows.map((row) => row.original as User)
     toast.promise(sleep(2000), {
-      loading: 'Inviting users...',
+      loading: 'Надсилаємо запрошення…',
       success: () => {
         table.resetRowSelection()
-        return `Invited ${selectedUsers.length} user${selectedUsers.length > 1 ? 's' : ''}`
+        return `Запрошено ${selectedUsers.length} користувач(ів)`
       },
-      error: 'Error inviting users',
+      error: 'Помилка під час надсилання запрошень.',
     })
     table.resetRowSelection()
   }
 
   return (
     <>
-      <BulkActionsToolbar table={table} entityName='user'>
+      <BulkActionsToolbar table={table} entityName="користувача">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant='outline'
-              size='icon'
+              variant="outline"
+              size="icon"
               onClick={handleBulkInvite}
-              className='size-8'
-              aria-label='Invite selected users'
-              title='Invite selected users'
+              className="size-8"
+              aria-label="Запросити вибраних користувачів"
+              title="Запросити вибраних користувачів"
             >
               <Mail />
-              <span className='sr-only'>Invite selected users</span>
+              <span className="sr-only">Запросити вибраних користувачів</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Invite selected users</p>
+            <p>Запросити вибраних користувачів</p>
           </TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant='outline'
-              size='icon'
+              variant="outline"
+              size="icon"
               onClick={() => handleBulkStatusChange('active')}
-              className='size-8'
-              aria-label='Activate selected users'
-              title='Activate selected users'
+              className="size-8"
+              aria-label="Активувати вибраних користувачів"
+              title="Активувати вибраних користувачів"
             >
               <UserCheck />
-              <span className='sr-only'>Activate selected users</span>
+              <span className="sr-only">
+                Активувати вибраних користувачів
+              </span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Activate selected users</p>
+            <p>Активувати вибраних користувачів</p>
           </TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant='outline'
-              size='icon'
+              variant="outline"
+              size="icon"
               onClick={() => handleBulkStatusChange('inactive')}
-              className='size-8'
-              aria-label='Deactivate selected users'
-              title='Deactivate selected users'
+              className="size-8"
+              aria-label="Деактивувати вибраних користувачів"
+              title="Деактивувати вибраних користувачів"
             >
               <UserX />
-              <span className='sr-only'>Deactivate selected users</span>
+              <span className="sr-only">
+                Деактивувати вибраних користувачів
+              </span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Deactivate selected users</p>
+            <p>Деактивувати вибраних користувачів</p>
           </TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant='destructive'
-              size='icon'
+              variant="destructive"
+              size="icon"
               onClick={() => setShowDeleteConfirm(true)}
-              className='size-8'
-              aria-label='Delete selected users'
-              title='Delete selected users'
+              className="size-8"
+              aria-label="Видалити вибраних користувачів"
+              title="Видалити вибраних користувачів"
             >
               <Trash2 />
-              <span className='sr-only'>Delete selected users</span>
+              <span className="sr-only">Видалити вибраних користувачів</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Delete selected users</p>
+            <p>Видалити вибраних користувачів</p>
           </TooltipContent>
         </Tooltip>
       </BulkActionsToolbar>

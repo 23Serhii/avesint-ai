@@ -16,34 +16,34 @@ type UserMultiDeleteDialogProps<TData> = {
   table: Table<TData>
 }
 
-const CONFIRM_WORD = 'DELETE'
+const CONFIRM_WORD = 'DELETE' // можемо потім поміняти на "ВИДАЛИТИ"
 
 export function UsersMultiDeleteDialog<TData>({
-  open,
-  onOpenChange,
-  table,
-}: UserMultiDeleteDialogProps<TData>) {
+                                                open,
+                                                onOpenChange,
+                                                table,
+                                              }: UserMultiDeleteDialogProps<TData>) {
   const [value, setValue] = useState('')
 
   const selectedRows = table.getFilteredSelectedRowModel().rows
 
   const handleDelete = () => {
     if (value.trim() !== CONFIRM_WORD) {
-      toast.error(`Please type "${CONFIRM_WORD}" to confirm.`)
+      toast.error(`Введіть "${CONFIRM_WORD}" для підтвердження.`)
       return
     }
 
     onOpenChange(false)
 
     toast.promise(sleep(2000), {
-      loading: 'Deleting users...',
+      loading: 'Видалення користувачів…',
       success: () => {
         table.resetRowSelection()
-        return `Deleted ${selectedRows.length} ${
-          selectedRows.length > 1 ? 'users' : 'user'
+        return `Видалено ${selectedRows.length} ${
+          selectedRows.length > 1 ? 'користувачів' : 'користувача'
         }`
       },
-      error: 'Error',
+      error: 'Помилка під час видалення.',
     })
   }
 
@@ -54,40 +54,40 @@ export function UsersMultiDeleteDialog<TData>({
       handleConfirm={handleDelete}
       disabled={value.trim() !== CONFIRM_WORD}
       title={
-        <span className='text-destructive'>
+        <span className="text-destructive">
           <AlertTriangle
-            className='stroke-destructive me-1 inline-block'
+            className="stroke-destructive me-1 inline-block"
             size={18}
           />{' '}
-          Delete {selectedRows.length}{' '}
-          {selectedRows.length > 1 ? 'users' : 'user'}
+          Видалити {selectedRows.length}{' '}
+          {selectedRows.length > 1 ? 'користувачів' : 'користувача'}
         </span>
       }
       desc={
-        <div className='space-y-4'>
-          <p className='mb-2'>
-            Are you sure you want to delete the selected users? <br />
-            This action cannot be undone.
+        <div className="space-y-4">
+          <p className="mb-2">
+            Ви впевнені, що хочете видалити вибраних користувачів? <br />
+            Цю дію не можна буде скасувати.
           </p>
 
-          <Label className='my-4 flex flex-col items-start gap-1.5'>
-            <span className=''>Confirm by typing "{CONFIRM_WORD}":</span>
+          <Label className="my-4 flex flex-col items-start gap-1.5">
+            <span>Підтвердіть, ввівши "{CONFIRM_WORD}":</span>
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder={`Type "${CONFIRM_WORD}" to confirm.`}
+              placeholder={`Введіть "${CONFIRM_WORD}" для підтвердження.`}
             />
           </Label>
 
-          <Alert variant='destructive'>
-            <AlertTitle>Warning!</AlertTitle>
+          <Alert variant="destructive">
+            <AlertTitle>Увага!</AlertTitle>
             <AlertDescription>
-              Please be careful, this operation can not be rolled back.
+              Будьте обережні, цю операцію не можна буде відкотити.
             </AlertDescription>
           </Alert>
         </div>
       }
-      confirmText='Delete'
+      confirmText="Видалити"
       destructive
     />
   )

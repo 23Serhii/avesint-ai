@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -26,18 +27,22 @@ import { PasswordInput } from '@/components/password-input'
 import { SelectDropdown } from '@/components/select-dropdown'
 import { roles } from '../data/data'
 import { type User } from '../data/schema'
+import { useUsers } from './users-provider'
 
 const formSchema = z
   .object({
-    firstName: z.string().min(1, 'First Name is required.'),
-    lastName: z.string().min(1, 'Last Name is required.'),
-    username: z.string().min(1, 'Username is required.'),
-    phoneNumber: z.string().min(1, 'Phone number is required.'),
+    firstName: z.string().min(1, "Ім'я є обовʼязковим."),
+    lastName: z.string().min(1, 'Прізвище є обовʼязковим.'),
+    username: z.string().min(1, 'Username є обовʼязковим.'),
+    phoneNumber: z.string().min(1, 'Номер телефону є обовʼязковим.'),
     email: z.email({
-      error: (iss) => (iss.input === '' ? 'Email is required.' : undefined),
+      error: (iss) => (iss.input === '' ? 'Email є обовʼязковим.' : undefined),
     }),
+    callsign: z.string().min(1, 'Позивний є обовʼязковим.'),
+    rank: z.string().min(1, 'Звання є обовʼязковим.'),
+    unit: z.string().min(1, 'Підрозділ є обовʼязковим.'),
     password: z.string().transform((pwd) => pwd.trim()),
-    role: z.string().min(1, 'Role is required.'),
+    role: z.string().min(1, 'Роль є обовʼязковою.'),
     confirmPassword: z.string().transform((pwd) => pwd.trim()),
     isEdit: z.boolean(),
   })
@@ -47,7 +52,7 @@ const formSchema = z
       return data.password.length > 0
     },
     {
-      message: 'Password is required.',
+      message: 'Пароль є обовʼязковим.',
       path: ['password'],
     }
   )
@@ -57,7 +62,7 @@ const formSchema = z
       return password.length >= 8
     },
     {
-      message: 'Password must be at least 8 characters long.',
+      message: 'Пароль має містити щонайменше 8 символів.',
       path: ['password'],
     }
   )
@@ -67,7 +72,7 @@ const formSchema = z
       return /[a-z]/.test(password)
     },
     {
-      message: 'Password must contain at least one lowercase letter.',
+      message: 'Пароль має містити хоча б одну маленьку літеру.',
       path: ['password'],
     }
   )
@@ -77,7 +82,7 @@ const formSchema = z
       return /\d/.test(password)
     },
     {
-      message: 'Password must contain at least one number.',
+      message: 'Пароль має містити хоча б одну цифру.',
       path: ['password'],
     }
   )
@@ -87,10 +92,11 @@ const formSchema = z
       return password === confirmPassword
     },
     {
-      message: "Passwords don't match.",
+      message: 'Паролі не співпадають.',
       path: ['confirmPassword'],
     }
   )
+
 type UserForm = z.infer<typeof formSchema>
 
 type UserActionDialogProps = {
@@ -99,37 +105,117 @@ type UserActionDialogProps = {
   onOpenChange: (open: boolean) => void
 }
 
+const emptyFormValues: UserForm = {
+  firstName: '',
+  lastName: '',
+  username: '',
+  email: '',
+  role: '',
+  phoneNumber: '',
+  callsign: '',
+  rank: '',
+  unit: '',
+  password: '',
+  confirmPassword: '',
+  isEdit: false,
+}
+
 export function UsersActionDialog({
   currentRow,
   open,
   onOpenChange,
 }: UserActionDialogProps) {
   const isEdit = !!currentRow
+  const { setItems } = useUsers()
   const form = useForm<UserForm>({
     resolver: zodResolver(formSchema),
-    defaultValues: isEdit
-      ? {
-          ...currentRow,
-          password: '',
-          confirmPassword: '',
-          isEdit,
-        }
-      : {
-          firstName: '',
-          lastName: '',
-          username: '',
-          email: '',
-          role: '',
-          phoneNumber: '',
-          password: '',
-          confirmPassword: '',
-          isEdit,
-        },
+    defaultValues: emptyFormValues,
   })
 
+  // 🔥 Ось тут ми реально підтягуємо дані в форму при відкритті
+  useEffect(() => {
+    if (!open) return
+
+    if (currentRow) {
+      form.reset({
+        firstName: currentRow.firstName,
+        lastName: currentRow.lastName,
+        username: currentRow.username,
+        email: currentRow.email,
+        phoneNumber: currentRow.phoneNumber,
+        callsign: currentRow.callsign,
+        rank: currentRow.rank,
+        unit: currentRow.unit,
+        role: currentRow.role,
+        password: '',
+        confirmPassword: '',
+        isEdit: true,
+      })
+    } else {
+      form.reset(emptyFormValues)
+    }
+  }, [currentRow, open, form])
+
   const onSubmit = (values: UserForm) => {
-    form.reset()
-    showSubmittedData(values)
+    const now = new Date()
+
+    if (isEdit && currentRow) {
+      // ✏️ ОНОВЛЕННЯ ІСНУЮЧОГО КОРИСТУВАЧА
+      setItems((prev) =>
+        prev.map((user) =>
+          user.id === currentRow.id
+            ? {
+                ...user,
+                firstName: values.firstName,
+                lastName: values.lastName,
+                username: values.username,
+                email: values.email,
+                phoneNumber: values.phoneNumber,
+                callsign: values.callsign,
+                rank: values.rank,
+                unit: values.unit,
+                role: values.role as User['role'],
+                // status залишаємо як був
+                updatedAt: now,
+              }
+            : user
+        )
+      )
+      showSubmittedData(
+        { ...values, id: currentRow.id },
+        'Оновлено користувача:'
+      )
+    } else {
+      // ➕ СТВОРЕННЯ НОВОГО КОРИСТУВАЧА
+      const id =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          // eslint-disable-next-line react-hooks/purity
+          : String(Date.now())
+
+      setItems((prev) => [
+        ...prev,
+        {
+          id,
+          firstName: values.firstName,
+          lastName: values.lastName,
+          username: values.username,
+          email: values.email,
+          phoneNumber: values.phoneNumber,
+          callsign: values.callsign,
+          rank: values.rank,
+          unit: values.unit,
+          role: values.role as User['role'],
+          status: 'active',
+          createdAt: now,
+          updatedAt: now,
+        },
+      ])
+
+      showSubmittedData({ ...values, id }, 'Створено нового користувача:')
+    }
+
+    form.reset(emptyFormValues)
     onOpenChange(false)
   }
 
@@ -139,16 +225,23 @@ export function UsersActionDialog({
     <Dialog
       open={open}
       onOpenChange={(state) => {
-        form.reset()
+        if (!state) {
+          form.reset(emptyFormValues)
+        }
         onOpenChange(state)
       }}
     >
       <DialogContent className='sm:max-w-lg'>
         <DialogHeader className='text-start'>
-          <DialogTitle>{isEdit ? 'Edit User' : 'Add New User'}</DialogTitle>
+          <DialogTitle>
+            {isEdit
+              ? 'Редагування користувача'
+              : 'Додавання нового користувача'}
+          </DialogTitle>
           <DialogDescription>
-            {isEdit ? 'Update the user here. ' : 'Create new user here. '}
-            Click save when you&apos;re done.
+            {isEdit
+              ? 'Оновіть дані користувача та натисніть «Зберегти».'
+              : 'Заповніть форму, щоб створити нового користувача системи штабу.'}
           </DialogDescription>
         </DialogHeader>
         <div className='h-[26.25rem] w-[calc(100%+0.75rem)] overflow-y-auto py-1 pe-3'>
@@ -158,17 +251,18 @@ export function UsersActionDialog({
               onSubmit={form.handleSubmit(onSubmit)}
               className='space-y-4 px-0.5'
             >
+              {/* Імʼя */}
               <FormField
                 control={form.control}
                 name='firstName'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      First Name
+                      Ім&apos;я
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='John'
+                        placeholder='Іван'
                         className='col-span-4'
                         autoComplete='off'
                         {...field}
@@ -178,17 +272,18 @@ export function UsersActionDialog({
                   </FormItem>
                 )}
               />
+              {/* Прізвище */}
               <FormField
                 control={form.control}
                 name='lastName'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      Last Name
+                      Прізвище
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='Doe'
+                        placeholder='Петренко'
                         className='col-span-4'
                         autoComplete='off'
                         {...field}
@@ -198,6 +293,7 @@ export function UsersActionDialog({
                   </FormItem>
                 )}
               />
+              {/* Username */}
               <FormField
                 control={form.control}
                 name='username'
@@ -208,7 +304,7 @@ export function UsersActionDialog({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='john_doe'
+                        placeholder='ivan_petrenko'
                         className='col-span-4'
                         {...field}
                       />
@@ -217,6 +313,70 @@ export function UsersActionDialog({
                   </FormItem>
                 )}
               />
+              {/* Позивний */}
+              <FormField
+                control={form.control}
+                name='callsign'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      Позивний
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='напр. БЕРКУТ'
+                        className='col-span-4'
+                        autoComplete='off'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              {/* Звання */}
+              <FormField
+                control={form.control}
+                name='rank'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      Звання
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='ст. лейтенант'
+                        className='col-span-4'
+                        autoComplete='off'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              {/* Підрозділ */}
+              <FormField
+                control={form.control}
+                name='unit'
+                render={({ field }) => (
+                  <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
+                    <FormLabel className='col-span-2 text-end'>
+                      Підрозділ
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='Аналітичний відділ'
+                        className='col-span-4'
+                        autoComplete='off'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className='col-span-4 col-start-3' />
+                  </FormItem>
+                )}
+              />
+              {/* Email */}
               <FormField
                 control={form.control}
                 name='email'
@@ -225,7 +385,7 @@ export function UsersActionDialog({
                     <FormLabel className='col-span-2 text-end'>Email</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='john.doe@gmail.com'
+                        placeholder='ivan.petrenko@example.com'
                         className='col-span-4'
                         {...field}
                       />
@@ -234,17 +394,18 @@ export function UsersActionDialog({
                   </FormItem>
                 )}
               />
+              {/* Телефон */}
               <FormField
                 control={form.control}
                 name='phoneNumber'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      Phone Number
+                      Телефон
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='+123456789'
+                        placeholder='+380...'
                         className='col-span-4'
                         {...field}
                       />
@@ -253,16 +414,17 @@ export function UsersActionDialog({
                   </FormItem>
                 )}
               />
+              {/* Роль */}
               <FormField
                 control={form.control}
                 name='role'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>Role</FormLabel>
+                    <FormLabel className='col-span-2 text-end'>Роль</FormLabel>
                     <SelectDropdown
                       defaultValue={field.value}
                       onValueChange={field.onChange}
-                      placeholder='Select a role'
+                      placeholder='Оберіть роль'
                       className='col-span-4'
                       items={roles.map(({ label, value }) => ({
                         label,
@@ -273,17 +435,22 @@ export function UsersActionDialog({
                   </FormItem>
                 )}
               />
+              {/* Пароль */}
               <FormField
                 control={form.control}
                 name='password'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      Password
+                      Пароль
                     </FormLabel>
                     <FormControl>
                       <PasswordInput
-                        placeholder='e.g., S3cur3P@ssw0rd'
+                        placeholder={
+                          isEdit
+                            ? 'Залиште порожнім, щоб не змінювати'
+                            : 'S3cur3P@ssw0rd'
+                        }
                         className='col-span-4'
                         {...field}
                       />
@@ -292,18 +459,19 @@ export function UsersActionDialog({
                   </FormItem>
                 )}
               />
+              {/* Підтвердження паролю */}
               <FormField
                 control={form.control}
                 name='confirmPassword'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>
-                      Confirm Password
+                      Повторіть пароль
                     </FormLabel>
                     <FormControl>
                       <PasswordInput
                         disabled={!isPasswordTouched}
-                        placeholder='e.g., S3cur3P@ssw0rd'
+                        placeholder='ще раз той самий пароль'
                         className='col-span-4'
                         {...field}
                       />
@@ -317,7 +485,7 @@ export function UsersActionDialog({
         </div>
         <DialogFooter>
           <Button type='submit' form='user-form'>
-            Save changes
+            Зберегти зміни
           </Button>
         </DialogFooter>
       </DialogContent>

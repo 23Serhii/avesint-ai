@@ -21,13 +21,23 @@ import { Button } from '@/components/ui/button'
 
 type Props = {
   items: Task[]
+  onCreateClick?: () => void
+  mode?: 'all' | 'my'
+  currentCallsign?: string
+  currentRole?: TaskRole
 }
 
 type StatusFilter = 'all' | TaskStatus
 type RoleFilter = 'all' | TaskRole
 type PriorityFilter = 'all' | TaskPriority
 
-export function TasksTableSimple({ items }: Props) {
+export function TasksTable({
+                             items,
+                             onCreateClick,
+                             mode = 'all',
+                             currentCallsign,
+                             currentRole,
+                           }: Props) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
@@ -93,9 +103,26 @@ export function TasksTableSimple({ items }: Props) {
     }
   }
 
+  // 🔎 Логіка: "мої задачі" = або по позивному, або по ролі
+  const isMyTask = (task: Task) => {
+    const byCallsign =
+      currentCallsign && task.assignee?.toLowerCase() === currentCallsign.toLowerCase()
+    const byRole = currentRole && task.role === currentRole
+    return !!(byCallsign || byRole)
+  }
+
   const filteredItems = useMemo(() => {
     return items.filter((task) => {
-      const text = (task.title + ' ' + task.description).toLowerCase()
+      // Спочатку режимо по вкладці
+      if (mode === 'my' && !isMyTask(task)) return false
+
+      const text = (
+        task.title +
+        ' ' +
+        task.description +
+        ' ' +
+        (task.assignee ?? '')
+      ).toLowerCase()
       const q = search.toLowerCase().trim()
 
       if (q && !text.includes(q)) return false
@@ -105,22 +132,26 @@ export function TasksTableSimple({ items }: Props) {
 
       return true
     })
-  }, [items, search, statusFilter, roleFilter, priorityFilter])
+  }, [items, search, statusFilter, roleFilter, priorityFilter, mode, currentCallsign, currentRole])
 
   return (
     <div className="rounded-lg border">
       {/* Верхня панель */}
       <div className="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center">
         <div>
-          <h3 className="font-semibold">Задачі штабу</h3>
+          <h3 className="font-semibold">
+            {mode === 'my' ? 'Мої задачі' : 'Задачі штабу'}
+          </h3>
           <p className="text-xs text-muted-foreground">
-            Начальник нарізає задачі підлеглим за ролями (аналітики, чергові, керівники).
+            {mode === 'my'
+              ? 'Задачі, де ви зазначені як виконавець або відповідає ваша роль.'
+              : 'Начальник нарізає задачі підлеглим за ролями (аналітики, чергові, керівники).'}
           </p>
         </div>
 
         <div className="flex flex-1 flex-wrap items-center gap-2 sm:justify-end">
           <Input
-            placeholder="Пошук за назвою або описом…"
+            placeholder="Пошук за назвою, описом або позивним…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-xs"
@@ -172,7 +203,11 @@ export function TasksTableSimple({ items }: Props) {
             </SelectContent>
           </Select>
 
-          <Button size="sm" variant="outline">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onCreateClick?.()}
+          >
             + Нова задача
           </Button>
         </div>
@@ -183,7 +218,7 @@ export function TasksTableSimple({ items }: Props) {
         <TableHeader>
           <TableRow>
             <TableHead>Назва</TableHead>
-            <TableHead>Роль / виконавець</TableHead>
+            <TableHead>Роль / позивний</TableHead>
             <TableHead>Пріоритет</TableHead>
             <TableHead>Статус</TableHead>
             <TableHead className="text-right">Дедлайн</TableHead>
@@ -204,7 +239,7 @@ export function TasksTableSimple({ items }: Props) {
                 <div className="text-sm">{roleLabel(task.role)}</div>
                 {task.assignee && (
                   <div className="text-xs text-muted-foreground">
-                    {task.assignee}
+                    Позивний «{task.assignee}»
                   </div>
                 )}
               </TableCell>

@@ -8,6 +8,13 @@ import { callTypes, roles } from '../data/data'
 import { type User } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 
+const statusLabel: Record<User['status'], string> = {
+  active: 'active',
+  inactive: 'inactive',
+  invited: 'invited',
+  suspended: 'suspended',
+}
+
 export const usersColumns: ColumnDef<User>[] = [
   {
     id: 'select',
@@ -18,8 +25,9 @@ export const usersColumns: ColumnDef<User>[] = [
           (table.getIsSomePageRowsSelected() && 'indeterminate')
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label='Select all'
-        className='translate-y-[2px]'
+        aria-label="Select all"
+        className="translate-y-[2px]"
+        onClick={(e) => e.stopPropagation()}
       />
     ),
     meta: {
@@ -29,8 +37,9 @@ export const usersColumns: ColumnDef<User>[] = [
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label='Select row'
-        className='translate-y-[2px]'
+        aria-label="Select row"
+        className="translate-y-[2px]"
+        onClick={(e) => e.stopPropagation()}
       />
     ),
     enableSorting: false,
@@ -39,10 +48,10 @@ export const usersColumns: ColumnDef<User>[] = [
   {
     accessorKey: 'username',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Username' />
+      <DataTableColumnHeader column={column} title="Username" />
     ),
     cell: ({ row }) => (
-      <LongText className='max-w-36 ps-3'>{row.getValue('username')}</LongText>
+      <LongText className="max-w-36 ps-3">{row.getValue('username')}</LongText>
     ),
     meta: {
       className: cn(
@@ -55,44 +64,83 @@ export const usersColumns: ColumnDef<User>[] = [
   {
     id: 'fullName',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Name' />
+      <DataTableColumnHeader column={column} title="ПІБ" />
     ),
     cell: ({ row }) => {
       const { firstName, lastName } = row.original
-      const fullName = `${firstName} ${lastName}`
-      return <LongText className='max-w-36'>{fullName}</LongText>
+      const fullName = `${lastName} ${firstName}`
+      return <LongText className="max-w-36">{fullName}</LongText>
     },
     meta: { className: 'w-36' },
   },
   {
-    accessorKey: 'email',
+    accessorKey: 'callsign',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Email' />
+      <DataTableColumnHeader column={column} title="Позивний" />
     ),
     cell: ({ row }) => (
-      <div className='w-fit ps-2 text-nowrap'>{row.getValue('email')}</div>
+      <div className="font-mono uppercase">
+        {row.getValue<string>('callsign')}
+      </div>
     ),
+    meta: { className: 'w-28' },
   },
   {
-    accessorKey: 'phoneNumber',
+    accessorKey: 'role',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Phone Number' />
+      <DataTableColumnHeader column={column} title="Роль" />
     ),
-    cell: ({ row }) => <div>{row.getValue('phoneNumber')}</div>,
+    cell: ({ row }) => {
+      const { role } = row.original
+      const userType = roles.find(({ value }) => value === role)
+
+      if (!userType) {
+        return null
+      }
+
+      return (
+        <div className="flex items-center gap-x-2">
+          {userType.icon && (
+            <userType.icon size={16} className="text-muted-foreground" />
+          )}
+          <span className="text-sm">{userType.label}</span>
+        </div>
+      )
+    },
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id))
+    },
     enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    id: 'service',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Звання / підрозділ" />
+    ),
+    cell: ({ row }) => {
+      const { rank, unit } = row.original
+      return (
+        <div className="text-xs">
+          <div className="font-medium">{rank}</div>
+          <div className="text-muted-foreground">{unit}</div>
+        </div>
+      )
+    },
+    meta: { className: 'w-52' },
   },
   {
     accessorKey: 'status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Status' />
+      <DataTableColumnHeader column={column} title="Статус" />
     ),
     cell: ({ row }) => {
       const { status } = row.original
       const badgeColor = callTypes.get(status)
       return (
-        <div className='flex space-x-2'>
-          <Badge variant='outline' className={cn('capitalize', badgeColor)}>
-            {row.getValue('status')}
+        <div className="flex space-x-2">
+          <Badge variant="outline" className={cn('capitalize', badgeColor)}>
+            {statusLabel[status]}
           </Badge>
         </div>
       )
@@ -104,32 +152,21 @@ export const usersColumns: ColumnDef<User>[] = [
     enableSorting: false,
   },
   {
-    accessorKey: 'role',
+    accessorKey: 'phoneNumber',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Role' />
+      <DataTableColumnHeader column={column} title="Телефон" />
     ),
-    cell: ({ row }) => {
-      const { role } = row.original
-      const userType = roles.find(({ value }) => value === role)
-
-      if (!userType) {
-        return null
-      }
-
-      return (
-        <div className='flex items-center gap-x-2'>
-          {userType.icon && (
-            <userType.icon size={16} className='text-muted-foreground' />
-          )}
-          <span className='text-sm capitalize'>{row.getValue('role')}</span>
-        </div>
-      )
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
-    },
+    cell: ({ row }) => <div>{row.getValue('phoneNumber')}</div>,
     enableSorting: false,
-    enableHiding: false,
+  },
+  {
+    accessorKey: 'email',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Email" />
+    ),
+    cell: ({ row }) => (
+      <div className="w-fit ps-2 text-nowrap">{row.getValue('email')}</div>
+    ),
   },
   {
     id: 'actions',

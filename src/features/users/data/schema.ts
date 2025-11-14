@@ -9,11 +9,13 @@ const userStatusSchema = z.union([
 export type UserStatus = z.infer<typeof userStatusSchema>
 
 const userRoleSchema = z.union([
-  z.literal('superadmin'),
-  z.literal('admin'),
-  z.literal('cashier'),
-  z.literal('manager'),
+  z.literal('commander'),
+  z.literal('section_lead'),
+  z.literal('analyst'),
+  z.literal('duty_officer'),
 ])
+
+export type UserRole = z.infer<typeof userRoleSchema>
 
 const userSchema = z.object({
   id: z.string(),
@@ -22,6 +24,9 @@ const userSchema = z.object({
   username: z.string(),
   email: z.string(),
   phoneNumber: z.string(),
+  callsign: z.string(), // позивний
+  rank: z.string(),     // звання
+  unit: z.string(),     // підрозділ
   status: userStatusSchema,
   role: userRoleSchema,
   createdAt: z.coerce.date(),

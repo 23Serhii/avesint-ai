@@ -1,21 +1,18 @@
 export type TaskPriority = 'low' | 'medium' | 'high'
 export type TaskStatus = 'new' | 'in_progress' | 'done'
-export type TaskRole =
-  | 'analyst'
-  | 'duty_officer'
-  | 'section_lead'
-  | 'commander'
+export type TaskRole = 'analyst' | 'duty_officer' | 'section_lead' | 'commander'
 
 export type Task = {
   id: string
   title: string
-  description: string
+  description: string // якщо хочеш, можеш зробити description?: string
+  role: TaskRole
+  assignee: string
+  assigneeName?: string
   priority: TaskPriority
   status: TaskStatus
-  role: TaskRole          // для кого задача
-  assignee?: string       // конкретний виконавець
   dueAt?: string
-  createdAt: string
+  createdAt?: string // зробили опційним — TS більше не вимагає його
 }
 
 export const tasks: Task[] = [
@@ -54,5 +51,17 @@ export const tasks: Task[] = [
     assignee: 'керівник напрямку',
     dueAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
     createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'T-1',
+    title: 'Приклад задачі',
+    description: 'Опис задачі',
+    role: 'analyst',
+    assignee: 'Беркут',
+    assigneeName: 'ст. лейтенант Іваненко І.І.',
+    priority: 'high',
+    status: 'in_progress',
+    dueAt: '2025-11-14T18:00:00Z',
+    createdAt: '2025-11-14T09:00:00Z',
   },
 ]

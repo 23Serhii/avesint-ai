@@ -16,17 +16,17 @@ type UserDeleteDialogProps = {
 }
 
 export function UsersDeleteDialog({
-  open,
-  onOpenChange,
-  currentRow,
-}: UserDeleteDialogProps) {
+                                    open,
+                                    onOpenChange,
+                                    currentRow,
+                                  }: UserDeleteDialogProps) {
   const [value, setValue] = useState('')
 
   const handleDelete = () => {
     if (value.trim() !== currentRow.username) return
 
     onOpenChange(false)
-    showSubmittedData(currentRow, 'The following user has been deleted:')
+    showSubmittedData(currentRow, 'Користувача буде видалено:')
   }
 
   return (
@@ -36,45 +36,44 @@ export function UsersDeleteDialog({
       handleConfirm={handleDelete}
       disabled={value.trim() !== currentRow.username}
       title={
-        <span className='text-destructive'>
+        <span className="text-destructive">
           <AlertTriangle
-            className='stroke-destructive me-1 inline-block'
+            className="stroke-destructive me-1 inline-block"
             size={18}
           />{' '}
-          Delete User
+          Видалити користувача
         </span>
       }
       desc={
-        <div className='space-y-4'>
-          <p className='mb-2'>
-            Are you sure you want to delete{' '}
-            <span className='font-bold'>{currentRow.username}</span>?
-            <br />
-            This action will permanently remove the user with the role of{' '}
-            <span className='font-bold'>
+        <div className="space-y-4">
+          <p className="mb-2">
+            Ви впевнені, що хочете видалити{' '}
+            <span className="font-bold">{currentRow.username}</span>? <br />
+            Це назавжди прибере його роль{' '}
+            <span className="font-bold">
               {currentRow.role.toUpperCase()}
             </span>{' '}
-            from the system. This cannot be undone.
+            з системи. Дію неможливо буде скасувати.
           </p>
 
-          <Label className='my-2'>
-            Username:
+          <Label className="my-2">
+            Імʼя користувача:
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder='Enter username to confirm deletion.'
+              placeholder="Введіть username для підтвердження."
             />
           </Label>
 
-          <Alert variant='destructive'>
-            <AlertTitle>Warning!</AlertTitle>
+          <Alert variant="destructive">
+            <AlertTitle>Увага!</AlertTitle>
             <AlertDescription>
-              Please be careful, this operation can not be rolled back.
+              Будьте обережні, цю операцію не можна буде відкотити.
             </AlertDescription>
           </Alert>
         </div>
       }
-      confirmText='Delete'
+      confirmText="Видалити"
       destructive
     />
   )

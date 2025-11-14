@@ -29,9 +29,9 @@ import { roles } from '../data/data'
 const formSchema = z.object({
   email: z.email({
     error: (iss) =>
-      iss.input === '' ? 'Please enter an email to invite.' : undefined,
+      iss.input === '' ? 'Вкажіть email для запрошення.' : undefined,
   }),
-  role: z.string().min(1, 'Role is required.'),
+  role: z.string().min(1, 'Роль є обовʼязковою.'),
   desc: z.string().optional(),
 })
 
@@ -43,9 +43,9 @@ type UserInviteDialogProps = {
 }
 
 export function UsersInviteDialog({
-  open,
-  onOpenChange,
-}: UserInviteDialogProps) {
+                                    open,
+                                    onOpenChange,
+                                  }: UserInviteDialogProps) {
   const form = useForm<UserInviteForm>({
     resolver: zodResolver(formSchema),
     defaultValues: { email: '', role: '', desc: '' },
@@ -65,32 +65,32 @@ export function UsersInviteDialog({
         onOpenChange(state)
       }}
     >
-      <DialogContent className='sm:max-w-md'>
-        <DialogHeader className='text-start'>
-          <DialogTitle className='flex items-center gap-2'>
-            <MailPlus /> Invite User
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader className="text-start">
+          <DialogTitle className="flex items-center gap-2">
+            <MailPlus /> Запросити користувача
           </DialogTitle>
           <DialogDescription>
-            Invite new user to join your team by sending them an email
-            invitation. Assign a role to define their access level.
+            Надішліть запрошення на email та одразу призначте роль, щоб
+            визначити рівень доступу користувача в системі штабу.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form
-            id='user-invite-form'
+            id="user-invite-form"
             onSubmit={form.handleSubmit(onSubmit)}
-            className='space-y-4'
+            className="space-y-4"
           >
             <FormField
               control={form.control}
-              name='email'
+              name="email"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
-                      type='email'
-                      placeholder='eg: john.doe@gmail.com'
+                      type="email"
+                      placeholder="напр. john.doe@gmail.com"
                       {...field}
                     />
                   </FormControl>
@@ -100,14 +100,14 @@ export function UsersInviteDialog({
             />
             <FormField
               control={form.control}
-              name='role'
+              name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role</FormLabel>
+                  <FormLabel>Роль</FormLabel>
                   <SelectDropdown
                     defaultValue={field.value}
                     onValueChange={field.onChange}
-                    placeholder='Select a role'
+                    placeholder="Оберіть роль"
                     items={roles.map(({ label, value }) => ({
                       label,
                       value,
@@ -119,14 +119,14 @@ export function UsersInviteDialog({
             />
             <FormField
               control={form.control}
-              name='desc'
+              name="desc"
               render={({ field }) => (
-                <FormItem className=''>
-                  <FormLabel>Description (optional)</FormLabel>
+                <FormItem>
+                  <FormLabel>Коментар (необовʼязково)</FormLabel>
                   <FormControl>
                     <Textarea
-                      className='resize-none'
-                      placeholder='Add a personal note to your invitation (optional)'
+                      className="resize-none"
+                      placeholder="Додайте особисту примітку до запрошення (за потреби)"
                       {...field}
                     />
                   </FormControl>
@@ -136,12 +136,12 @@ export function UsersInviteDialog({
             />
           </form>
         </Form>
-        <DialogFooter className='gap-y-2'>
+        <DialogFooter className="gap-y-2">
           <DialogClose asChild>
-            <Button variant='outline'>Cancel</Button>
+            <Button variant="outline">Скасувати</Button>
           </DialogClose>
-          <Button type='submit' form='user-invite-form'>
-            Invite <Send />
+          <Button type="submit" form="user-invite-form">
+            Надіслати запрошення <Send />
           </Button>
         </DialogFooter>
       </DialogContent>
