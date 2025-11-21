@@ -1,6 +1,6 @@
-// src/features/targets/Targets.tsx
 'use client'
 
+import { useRouter } from '@tanstack/react-router'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { Search } from '@/components/search'
@@ -9,13 +9,9 @@ import { ConfigDrawer } from '@/components/config-drawer'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { targets } from './data/targets'
 import { TargetsTable } from './components/targets-table'
-import { getRouteApi } from '@tanstack/react-router'
-
-// беремо API для детального роута
-const targetDetailsRoute = getRouteApi('/targets/$targetId')
 
 export function Targets() {
-  const navigate = targetDetailsRoute.useNavigate()
+  const router = useRouter()
 
   return (
     <>
@@ -44,7 +40,8 @@ export function Targets() {
         <TargetsTable
           items={targets}
           onRowClick={(item) =>
-            navigate({
+            router.navigate({
+              to: '/targets/$targetId',
               params: { targetId: String(item.id) },
             })
           }

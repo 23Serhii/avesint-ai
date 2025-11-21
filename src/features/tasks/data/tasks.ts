@@ -1,67 +1,80 @@
-export type TaskPriority = 'low' | 'medium' | 'high'
+// src/features/tasks/data/tasks.ts
+
 export type TaskStatus = 'new' | 'in_progress' | 'done'
+export type TaskPriority = 'high' | 'medium' | 'low'
 export type TaskRole = 'analyst' | 'duty_officer' | 'section_lead' | 'commander'
 
 export type Task = {
   id: string
   title: string
-  description: string // якщо хочеш, можеш зробити description?: string
+  description?: string
   role: TaskRole
-  assignee: string
-  assigneeName?: string
   priority: TaskPriority
   status: TaskStatus
+
+  // 🔥 військовий блок
+  assigneeCallsign: string          // позивний: "БЕРКУТ"
+  assigneeRank?: string             // "ст. лейтенант"
+  assigneeUnit?: string             // "Аналітичний відділ"
+
+  createdAt: string
+  updatedAt?: string
   dueAt?: string
-  createdAt?: string // зробили опційним — TS більше не вимагає його
 }
 
+// Прості мок-дані (можеш розширити)
 export const tasks: Task[] = [
   {
-    id: 'TASK-0001',
-    title: 'Провести первинний аналіз подій за останні 6 годин',
+    id: 't-1',
+    title: 'Розвідзвіт по району Бахмут-південь',
     description:
-      'Згрупувати події за типами (артилерія, БпЛА, диверсії) та сформувати коротку зведену таблицю.',
-    priority: 'high',
-    status: 'new',
+      'Зібрати дані по руху техніки противника за останні 24 години, джерела: БПЛА, радіоперехоплення.',
     role: 'analyst',
-    assignee: 'молодший аналітик',
-    dueAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+    priority: 'high',
+    status: 'in_progress',
+    assigneeCallsign: 'БЕРКУТ',
+    assigneeRank: 'ст. лейтенант',
+    assigneeUnit: 'Аналітичний відділ',
+    createdAt: new Date().toISOString(),
+    dueAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(), // +3 години
+  },
+  {
+    id: 't-2',
+    title: 'Моніторинг скупчення техніки біля ТЕЦ',
+    description:
+      'Підтвердження наявності танків/ББМ біля обʼєкта критичної інфраструктури. Звірити з супутниковими даними.',
+    role: 'duty_officer',
+    priority: 'medium',
+    status: 'new',
+    assigneeCallsign: 'ОМЕГА',
+    assigneeRank: 'капітан',
+    assigneeUnit: 'Черговий по штабу',
     createdAt: new Date().toISOString(),
   },
   {
-    id: 'TASK-0002',
-    title: 'Оновити карту обʼєктів на південному напрямку',
+    id: 't-3',
+    title: 'Побудова карти загроз по району Курахове',
     description:
-      'Звірити координати мостів та логістичних вузлів, перевірити актуальність статусу обʼєктів.',
+      'Агрегувати дані по ворожій активності за останні 7 діб та сформувати теплову карту ризиків.',
+    role: 'section_lead',
     priority: 'medium',
     status: 'in_progress',
-    role: 'duty_officer',
-    assignee: 'черговий офіцер',
-    dueAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
+    assigneeCallsign: 'ЛОРД',
+    assigneeRank: 'майор',
+    assigneeUnit: 'Керівник напряму',
     createdAt: new Date().toISOString(),
   },
   {
-    id: 'TASK-0003',
-    title: 'Підготувати добовий аналітичний звіт',
+    id: 't-4',
+    title: 'Аналіз маршрутів стратегічної авіації',
     description:
-      'Зведення по подіях, обʼєктах та джерелах. Окремо виділити тренди по БпЛА та артобстрілах.',
+      'Виділити типові маршрути польотів стратегічних бомбардувальників РФ, повʼязати з обстрілами.',
+    role: 'analyst',
     priority: 'high',
     status: 'new',
-    role: 'section_lead',
-    assignee: 'керівник напрямку',
-    dueAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+    assigneeCallsign: 'ФЕНІКС',
+    assigneeRank: 'лейтенант',
+    assigneeUnit: 'Аналітичний відділ',
     createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'T-1',
-    title: 'Приклад задачі',
-    description: 'Опис задачі',
-    role: 'analyst',
-    assignee: 'Беркут',
-    assigneeName: 'ст. лейтенант Іваненко І.І.',
-    priority: 'high',
-    status: 'in_progress',
-    dueAt: '2025-11-14T18:00:00Z',
-    createdAt: '2025-11-14T09:00:00Z',
   },
 ]

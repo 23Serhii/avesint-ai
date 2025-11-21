@@ -18,9 +18,10 @@ export function SignIn() {
         <CardHeader>
           <CardTitle className='text-lg tracking-tight'>Увійти</CardTitle>
           <CardDescription>
-            Введіть свою електронну адресу та пароль нижче, щоб <br />
-            увійти у свій обліковий запис
+            Введіть свій позивний та пароль, щоб <br />
+            увійти в систему
           </CardDescription>
+
         </CardHeader>
         <CardContent>
           <UserAuthForm redirectTo={redirect} />

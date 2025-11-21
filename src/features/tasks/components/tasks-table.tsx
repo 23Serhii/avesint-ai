@@ -1,14 +1,6 @@
 import { useMemo, useState } from 'react'
-import type { Task, TaskPriority, TaskRole, TaskStatus } from '../data/tasks'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -17,14 +9,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import type { Task, TaskPriority, TaskRole, TaskStatus } from '../data/tasks'
 
 type Props = {
   items: Task[]
   onCreateClick?: () => void
+  onOpenTask?: (task: Task) => void
   mode?: 'all' | 'my'
   currentCallsign?: string
   currentRole?: TaskRole
+  showRoleFilter?: boolean
 }
 
 type StatusFilter = 'all' | TaskStatus
@@ -32,12 +34,14 @@ type RoleFilter = 'all' | TaskRole
 type PriorityFilter = 'all' | TaskPriority
 
 export function TasksTable({
-                             items,
-                             onCreateClick,
-                             mode = 'all',
-                             currentCallsign,
-                             currentRole,
-                           }: Props) {
+  items,
+  onCreateClick,
+  onOpenTask,
+  mode = 'all',
+  currentCallsign,
+  currentRole,
+  showRoleFilter = true,
+}: Props) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
@@ -103,111 +107,131 @@ export function TasksTable({
     }
   }
 
-  // 🔎 Логіка: "мої задачі" = або по позивному, або по ролі
-  const isMyTask = (task: Task) => {
-    const byCallsign =
-      currentCallsign && task.assignee?.toLowerCase() === currentCallsign.toLowerCase()
-    const byRole = currentRole && task.role === currentRole
-    return !!(byCallsign || byRole)
-  }
-
   const filteredItems = useMemo(() => {
     return items.filter((task) => {
-      // Спочатку режимо по вкладці
-      if (mode === 'my' && !isMyTask(task)) return false
+      // 1️⃣ Якщо режим "мої задачі" — спочатку відфільтровуємо по позивному/ролі
+      if (mode === 'my' && (currentCallsign || currentRole)) {
+        const byCallsign =
+          currentCallsign &&
+          task.assigneeCallsign &&
+          task.assigneeCallsign.toLowerCase() === currentCallsign.toLowerCase()
 
+        const byRole = currentRole && task.role === currentRole
+
+        if (!(byCallsign || byRole)) {
+          return false
+        }
+      }
+
+      // 2️⃣ Пошук
       const text = (
         task.title +
         ' ' +
-        task.description +
+        (task.description ?? '') +
         ' ' +
-        (task.assignee ?? '')
+        (task.assigneeCallsign ?? '') +
+        ' ' +
+        (task.assigneeUnit ?? '') +
+        ' ' +
+        (task.assigneeRank ?? '')
       ).toLowerCase()
       const q = search.toLowerCase().trim()
 
       if (q && !text.includes(q)) return false
+
+      // 3️⃣ Фільтри
       if (statusFilter !== 'all' && task.status !== statusFilter) return false
       if (roleFilter !== 'all' && task.role !== roleFilter) return false
-      if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false
+      if (priorityFilter !== 'all' && task.priority !== priorityFilter)
+        return false
 
       return true
     })
-  }, [items, search, statusFilter, roleFilter, priorityFilter, mode, currentCallsign, currentRole])
+  }, [
+    items,
+    search,
+    statusFilter,
+    roleFilter,
+    priorityFilter,
+    mode,
+    currentCallsign,
+    currentRole,
+  ])
 
   return (
-    <div className="rounded-lg border">
+    <div className='rounded-lg border'>
       {/* Верхня панель */}
-      <div className="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center">
+      <div className='flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center'>
         <div>
-          <h3 className="font-semibold">
+          <h3 className='font-semibold'>
             {mode === 'my' ? 'Мої задачі' : 'Задачі штабу'}
           </h3>
-          <p className="text-xs text-muted-foreground">
+          <p className='text-muted-foreground text-xs'>
             {mode === 'my'
-              ? 'Задачі, де ви зазначені як виконавець або відповідає ваша роль.'
+              ? 'Задачі, де ви виконавець або відповідає ваша роль.'
               : 'Начальник нарізає задачі підлеглим за ролями (аналітики, чергові, керівники).'}
           </p>
         </div>
 
-        <div className="flex flex-1 flex-wrap items-center gap-2 sm:justify-end">
+        <div className='flex flex-1 flex-wrap items-center gap-2 sm:justify-end'>
           <Input
-            placeholder="Пошук за назвою, описом або позивним…"
+            placeholder='Пошук за назвою, описом або позивним…'
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="max-w-xs"
+            className='max-w-xs'
           />
 
           <Select
             value={statusFilter}
             onValueChange={(v: StatusFilter) => setStatusFilter(v)}
           >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Статус" />
+            <SelectTrigger className='w-[140px]'>
+              <SelectValue placeholder='Статус' />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Будь-який статус</SelectItem>
-              <SelectItem value="new">Нові</SelectItem>
-              <SelectItem value="in_progress">В роботі</SelectItem>
-              <SelectItem value="done">Виконані</SelectItem>
+              <SelectItem value='all'>Будь-який статус</SelectItem>
+              <SelectItem value='new'>Нові</SelectItem>
+              <SelectItem value='in_progress'>В роботі</SelectItem>
+              <SelectItem value='done'>Виконані</SelectItem>
             </SelectContent>
           </Select>
 
-          <Select
-            value={roleFilter}
-            onValueChange={(v: RoleFilter) => setRoleFilter(v)}
-          >
-            <SelectTrigger className="w-[170px]">
-              <SelectValue placeholder="Роль" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Всі ролі</SelectItem>
-              <SelectItem value="analyst">Аналітики</SelectItem>
-              <SelectItem value="duty_officer">Чергові офіцери</SelectItem>
-              <SelectItem value="section_lead">Керівники напрямків</SelectItem>
-              <SelectItem value="commander">Командир</SelectItem>
-            </SelectContent>
-          </Select>
+          {showRoleFilter && (
+            <Select
+              value={roleFilter}
+              onValueChange={(v: RoleFilter) => setRoleFilter(v)}
+            >
+              <SelectTrigger className='w-[170px]'>
+                <SelectValue placeholder='Роль' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='all'>Всі ролі</SelectItem>
+                <SelectItem value='analyst'>Аналітики</SelectItem>
+                <SelectItem value='duty_officer'>Чергові офіцери</SelectItem>
+                <SelectItem value='section_lead'>
+                  Керівники напрямків
+                </SelectItem>
+                <SelectItem value='commander'>Командир</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
 
           <Select
             value={priorityFilter}
             onValueChange={(v: PriorityFilter) => setPriorityFilter(v)}
           >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Пріоритет" />
+            <SelectTrigger className='w-[160px]'>
+              <SelectValue placeholder='Пріоритет' />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Будь-який пріоритет</SelectItem>
-              <SelectItem value="high">Високий</SelectItem>
-              <SelectItem value="medium">Середній</SelectItem>
-              <SelectItem value="low">Низький</SelectItem>
+              <SelectItem value='all'>Будь-який пріоритет</SelectItem>
+              <SelectItem value='high'>Високий</SelectItem>
+              <SelectItem value='medium'>Середній</SelectItem>
+              <SelectItem value='low'>Низький</SelectItem>
             </SelectContent>
           </Select>
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onCreateClick?.()}
-          >
+          <Button size='sm' variant='outline' onClick={() => onCreateClick?.()}>
             + Нова задача
           </Button>
         </div>
@@ -221,39 +245,51 @@ export function TasksTable({
             <TableHead>Роль / позивний</TableHead>
             <TableHead>Пріоритет</TableHead>
             <TableHead>Статус</TableHead>
-            <TableHead className="text-right">Дедлайн</TableHead>
+            <TableHead className='text-right'>Дедлайн</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredItems.map((task) => (
-            <TableRow key={task.id}>
-              <TableCell className="font-medium">
+            <TableRow
+              key={task.id}
+              className='cursor-pointer'
+              onClick={() => onOpenTask?.(task)} // ⬅️ відкриває сторінку з підзадачами
+            >
+              <TableCell className='font-medium'>
                 {task.title}
                 {task.description && (
-                  <div className="text-xs text-muted-foreground">
+                  <div className='text-muted-foreground text-xs'>
                     {task.description}
                   </div>
                 )}
               </TableCell>
               <TableCell>
-                <div className="text-sm">{roleLabel(task.role)}</div>
-                {task.assignee && (
-                  <div className="text-xs text-muted-foreground">
-                    Позивний «{task.assignee}»
-                  </div>
-                )}
+                <div className='text-sm'>{roleLabel(task.role)}</div>
+                <div className='text-muted-foreground text-xs'>
+                  {task.assigneeCallsign && (
+                    <>Позивний «{task.assigneeCallsign}»</>
+                  )}
+                  {(task.assigneeRank || task.assigneeUnit) && (
+                    <div className='text-muted-foreground/80 text-[11px]'>
+                      {[task.assigneeRank, task.assigneeUnit]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </div>
+                  )}
+                </div>
               </TableCell>
+
               <TableCell>
-                <Badge variant={priorityVariant(task.priority) as any}>
+                <Badge variant={priorityVariant(task.priority) as never}>
                   {priorityLabel(task.priority)}
                 </Badge>
               </TableCell>
               <TableCell>
-                <Badge variant={statusVariant(task.status) as any}>
+                <Badge variant={statusVariant(task.status) as never}>
                   {statusLabel(task.status)}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right text-xs text-muted-foreground">
+              <TableCell className='text-muted-foreground text-right text-xs'>
                 {task.dueAt
                   ? new Date(task.dueAt).toLocaleString('uk-UA')
                   : '—'}
@@ -263,7 +299,7 @@ export function TasksTable({
 
           {filteredItems.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="py-6 text-center text-sm">
+              <TableCell colSpan={5} className='py-6 text-center text-sm'>
                 Задач немає. Змініть фільтри або створіть нову задачу.
               </TableCell>
             </TableRow>

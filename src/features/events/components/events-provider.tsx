@@ -8,6 +8,10 @@ type EventsContextType = {
   setOpen: (value: EventsDialogType | null) => void
   currentRow: Event | null
   setCurrentRow: React.Dispatch<React.SetStateAction<Event | null>>
+
+  // 🔥 вибраний івент для карти
+  selectedEventId: string | null
+  setSelectedEventId: (id: string | null) => void
 }
 
 const EventsContext = React.createContext<EventsContextType | null>(null)
@@ -15,6 +19,7 @@ const EventsContext = React.createContext<EventsContextType | null>(null)
 export function EventsProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState<EventsDialogType | null>(null)
   const [currentRow, setCurrentRow] = useState<Event | null>(null)
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
 
   return (
     <EventsContext.Provider
@@ -23,6 +28,8 @@ export function EventsProvider({ children }: { children: React.ReactNode }) {
         setOpen,
         currentRow,
         setCurrentRow,
+        selectedEventId,
+        setSelectedEventId,
       }}
     >
       {children}

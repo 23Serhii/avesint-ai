@@ -19,7 +19,8 @@ export function SignUp() {
             Створити обліковий запис
           </CardTitle>
           <CardDescription>
-            Введіть свою електронну адресу та пароль, щоб створити обліковий запис. <br />
+            Введіть свій позивний, імʼя та пароль, щоб створити обліковий запис.
+            <br />
             Вже маєте обліковий запис?{' '}
             <Link
               to='/sign-in'
@@ -32,9 +33,7 @@ export function SignUp() {
         <CardContent>
           <SignUpForm />
         </CardContent>
-        <CardFooter>
-
-        </CardFooter>
+        <CardFooter />
       </Card>
     </AuthLayout>
   )

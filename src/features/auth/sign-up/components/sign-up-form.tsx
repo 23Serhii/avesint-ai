@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useNavigate } from '@tanstack/react-router'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,47 +16,96 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
+import { useAuthStore } from '@/stores/auth-store'
 
 const formSchema = z
   .object({
-    email: z.email({
-      error: (iss) =>
-        iss.input === '' ? 'Please enter your email' : undefined,
-    }),
+    callsign: z
+      .string()
+      .min(2, 'Позивний повинен містити щонайменше 2 символи'),
+    displayName: z
+      .string()
+      .min(2, 'Імʼя / посада повинні містити щонайменше 2 символи'),
     password: z
       .string()
-      .min(1, 'Please enter your password')
-      .min(7, 'Password must be at least 7 characters long'),
-    confirmPassword: z.string().min(1, 'Please confirm your password'),
+      .min(1, 'Введіть пароль')
+      .min(6, 'Пароль повинен складатися щонайменше з 6 символів'),
+    confirmPassword: z.string().min(1, 'Підтвердіть пароль'),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match.",
+    message: 'Паролі не співпадають',
     path: ['confirmPassword'],
   })
 
 export function SignUpForm({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLFormElement>) {
+                             className,
+                             ...props
+                           }: React.HTMLAttributes<HTMLFormElement>) {
   const [isLoading, setIsLoading] = useState(false)
+  const navigate = useNavigate()
+  const { auth } = useAuthStore()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
+      callsign: '',
+      displayName: '',
       password: '',
       confirmPassword: '',
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
+  async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsLoading(true)
-    // eslint-disable-next-line no-console
-    console.log(data)
 
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          callsign: data.callsign,
+          displayName: data.displayName,
+          password: data.password,
+        }),
+      })
+
+      if (!res.ok) {
+        let message = 'Помилка реєстрації'
+        try {
+          const body = await res.json()
+          if (body?.message) message = body.message
+        } catch {
+          // ignore
+        }
+        throw new Error(message)
+      }
+
+      const result = await res.json()
+      // backend повертає { user, accessToken, refreshToken? }
+
+      auth.setUser(result.user)
+      auth.setAccessToken(result.accessToken)
+
+      toast.success(
+        `Акаунт створено. Зараз налаштуємо двофакторну аутентифікацію для ${
+          result.user.displayName || result.user.callsign
+        }.`,
+      )
+
+      // одразу йдемо на сторінку налаштування 2FA
+      await navigate({
+        to: '/two-factor-setup',
+        replace: true,
+      })
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : 'Не вдалося створити акаунт'
+      toast.error(msg)
+    } finally {
       setIsLoading(false)
-    }, 3000)
+    }
   }
 
   return (
@@ -66,17 +117,32 @@ export function SignUpForm({
       >
         <FormField
           control={form.control}
-          name='email'
+          name='callsign'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Позивний</FormLabel>
               <FormControl>
-                <Input placeholder='name@example.com' {...field} />
+                <Input placeholder='Напр. VORON' autoComplete='username' {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name='displayName'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Імʼя / посада</FormLabel>
+              <FormControl>
+                <Input placeholder='Начальник зміни' {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name='password'
@@ -84,12 +150,17 @@ export function SignUpForm({
             <FormItem>
               <FormLabel>Пароль</FormLabel>
               <FormControl>
-                <PasswordInput placeholder='********' {...field} />
+                <PasswordInput
+                  placeholder='********'
+                  autoComplete='new-password'
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name='confirmPassword'
@@ -103,10 +174,10 @@ export function SignUpForm({
             </FormItem>
           )}
         />
+
         <Button className='mt-2' disabled={isLoading}>
           Створити акаунт
         </Button>
-
       </form>
     </Form>
   )

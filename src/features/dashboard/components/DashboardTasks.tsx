@@ -1,8 +1,8 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { tasks } from '@/features/tasks/data/tasks'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.tsx'
+import { tasks } from '@/features/tasks/data/tasks.ts'
+import { Badge } from '@/components/ui/badge.tsx'
 
 export function DashboardTasks() {
   const recent = tasks.slice(0, 4)

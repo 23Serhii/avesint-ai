@@ -1,10 +1,9 @@
-
 import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,19 +14,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
   InputOTPSeparator,
 } from '@/components/ui/input-otp'
-
-const requestSchema = z.object({
-  email: z
-    .string()
-    .email('Введіть коректну службову електронну адресу.'),
-})
+import { useAuthStore } from '@/stores/auth-store'
 
 const otpSchema = z.object({
   otp: z
@@ -36,171 +29,118 @@ const otpSchema = z.object({
     .max(6, 'Введіть 6-значний код.'),
 })
 
-type OtpFormProps = React.HTMLAttributes<HTMLDivElement>
+type OtpFormProps = React.HTMLAttributes<HTMLDivElement> & {
+  token: string
+  redirectTo?: string
+}
 
-export function OtpForm({ className, ...props }: OtpFormProps) {
+export function OtpForm({ className, token, redirectTo = '/', ...props }: OtpFormProps) {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
-  const [step, setStep] = useState<'request' | 'verify'>('request')
-  const [targetEmail, setTargetEmail] = useState<string | null>(null)
+  const { auth } = useAuthStore()
 
-  // Крок 1: запит на відправку ОТП
-  const requestForm = useForm<z.infer<typeof requestSchema>>({
-    resolver: zodResolver(requestSchema),
-    defaultValues: { email: '' },
-  })
-
-  // Крок 2: ввід ОТП
-  const otpForm = useForm<z.infer<typeof otpSchema>>({
+  const form = useForm<z.infer<typeof otpSchema>>({
     resolver: zodResolver(otpSchema),
     defaultValues: { otp: '' },
   })
 
-  const otp = otpForm.watch('otp')
+  const otp = form.watch('otp')
 
-  function onSubmitRequest(data: z.infer<typeof requestSchema>) {
+  async function onSubmit(data: z.infer<typeof otpSchema>) {
     setIsLoading(true)
-    // Тут буде виклик бекенду типу /auth/request-otp
-    showSubmittedData({ stage: 'request_otp', ...data })
+    try {
+      const res = await fetch('/api/2fa/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ code: data.otp }),
+      })
 
-    setTimeout(() => {
+      if (!res.ok) {
+        let message = 'Помилка підтвердження коду'
+        try {
+          const body = await res.json()
+          if (body?.message) message = body.message
+        } catch {
+          // ignore
+        }
+        throw new Error(message)
+      }
+
+      const result = await res.json()
+
+      // очікуємо { user, accessToken, refreshToken?, requires2FA: false }
+      auth.setUser(result.user)
+      auth.setAccessToken(result.accessToken)
+
+      await navigate({ to: redirectTo, replace: true })
+      toast.success('Вхід підтверджено')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Не вдалося підтвердити код'
+      toast.error(msg)
+    } finally {
       setIsLoading(false)
-      setTargetEmail(data.email)
-      setStep('verify')
-    }, 800)
-  }
-
-  function onSubmitOtp(data: z.infer<typeof otpSchema>) {
-    setIsLoading(true)
-    // Тут буде виклик бекенду типу /auth/verify-otp
-    showSubmittedData({ stage: 'verify_otp', ...data, email: targetEmail })
-
-    setTimeout(() => {
-      setIsLoading(false)
-      navigate({ to: '/' })
-    }, 1000)
+    }
   }
 
   return (
     <div className={cn('grid gap-6', className)} {...props}>
-      {step === 'request' ? (
-        <Form {...requestForm}>
-          <form
-            onSubmit={requestForm.handleSubmit(onSubmitRequest)}
-            className='grid gap-4'
-          >
-            <div>
-              <h2 className='text-lg font-semibold'>
-                Підтвердження входу
-              </h2>
-              <p className='text-sm text-muted-foreground'>
-                Вкажіть службову електронну пошту, ми надішлемо одноразовий код
-                для входу в систему.
-              </p>
-            </div>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className='grid gap-4'>
+          <div>
+            <h2 className='text-lg font-semibold'>Введіть одноразовий код</h2>
+            <p className='text-sm text-muted-foreground'>
+              Відкрийте додаток аутентифікації (Google Authenticator, Aegis тощо)
+              та введіть 6-значний код для підтвердження входу.
+            </p>
+          </div>
 
-            <FormField
-              control={requestForm.control}
-              name='email'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Службова електронна пошта</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='email'
-                      placeholder='name@mil.gov.ua'
-                      autoComplete='email'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name='otp'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className='sr-only'>Одноразовий код</FormLabel>
+                <FormControl>
+                  <InputOTP
+                    maxLength={6}
+                    {...field}
+                    containerClassName='justify-between sm:[&>[data-slot="input-otp-group"]>div]:w-12'
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                    </InputOTPGroup>
+                    <InputOTPSeparator />
+                    <InputOTPGroup>
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                    </InputOTPGroup>
+                    <InputOTPSeparator />
+                    <InputOTPGroup>
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <Button type='submit' disabled={isLoading}>
-              Надіслати код
+          <div className='flex items-center gap-2'>
+            <Button
+              className='ml-auto'
+              type='submit'
+              disabled={otp.length < 6 || isLoading}
+            >
+              Підтвердити
             </Button>
-          </form>
-        </Form>
-      ) : (
-        <Form {...otpForm}>
-          <form
-            onSubmit={otpForm.handleSubmit(onSubmitOtp)}
-            className='grid gap-4'
-          >
-            <div>
-              <h2 className='text-lg font-semibold'>
-                Введіть одноразовий код
-              </h2>
-              <p className='text-sm text-muted-foreground'>
-                Ми надіслали 6-значний код на адресу{' '}
-                <span className='font-medium'>
-                  {targetEmail ?? 'вашу електронну пошту'}
-                </span>
-                . Введіть його нижче, щоб підтвердити вхід.
-              </p>
-            </div>
-
-            <FormField
-              control={otpForm.control}
-              name='otp'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className='sr-only'>
-                    Одноразовий код
-                  </FormLabel>
-                  <FormControl>
-                    <InputOTP
-                      maxLength={6}
-                      {...field}
-                      containerClassName='justify-between sm:[&>[data-slot="input-otp-group"]>div]:w-12'
-                    >
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                      </InputOTPGroup>
-                      <InputOTPSeparator />
-                      <InputOTPGroup>
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                      </InputOTPGroup>
-                      <InputOTPSeparator />
-                      <InputOTPGroup>
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className='flex items-center gap-2'>
-              <Button
-                type='button'
-                variant='ghost'
-                onClick={() => {
-                  // повернутися до кроку запиту коду
-                  setStep('request')
-                  setTargetEmail(null)
-                  otpForm.reset({ otp: '' })
-                }}
-              >
-                Змінити адресу
-              </Button>
-              <Button
-                className='ml-auto'
-                type='submit'
-                disabled={otp.length < 6 || isLoading}
-              >
-                Підтвердити
-              </Button>
-            </div>
-          </form>
-        </Form>
-      )}
+          </div>
+        </form>
+      </Form>
     </div>
   )
 }

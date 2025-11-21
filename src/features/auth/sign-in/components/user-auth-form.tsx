@@ -6,7 +6,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { Loader2, LogIn } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
-import { sleep, cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -20,13 +20,13 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
 
 const formSchema = z.object({
-  email: z.email({
-    error: (iss) => (iss.input === '' ? 'Введіть свою електронну адресу' : undefined),
-  }),
+  callsign: z
+    .string()
+    .min(1, 'Введіть позивний')
+    .min(2, 'Позивний надто короткий'),
   password: z
     .string()
     .min(1, 'Введіть пароль')
-    .min(7, 'Пароль повинен складатися щонайменше з 7 символів'),
 })
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLFormElement> {
@@ -45,39 +45,71 @@ export function UserAuthForm({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
+      callsign: '',
       password: '',
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
+  async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsLoading(true)
 
-    toast.promise(sleep(2000), {
-      loading: 'Вхід..',
-      success: () => {
-        setIsLoading(false)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          callsign: data.callsign,
+          password: data.password,
+        }),
+      })
 
-        // Mock successful authentication with expiry computed at success time
-        const mockUser = {
-          accountNo: 'ACC001',
-          email: data.email,
-          role: ['user'],
-          exp: Date.now() + 24 * 60 * 60 * 1000, // 24 hours from now
+      if (!res.ok) {
+        let message = 'Помилка входу'
+        try {
+          const body = await res.json()
+          if (body?.message) message = body.message
+        } catch {
+          // ignore
         }
+        throw new Error(message)
+      }
 
-        // Set user and access token
-        auth.setUser(mockUser)
-        auth.setAccessToken('mock-access-token')
+      const result = await res.json()
 
-        // Redirect to the stored location or default to dashboard
+      // Якщо 2FA вимкнено – одразу зберігаємо токен і юзера
+      if (!result.requires2FA) {
+        auth.setUser(result.user)
+        auth.setAccessToken(result.accessToken)
+
         const targetPath = redirectTo || '/'
-        navigate({ to: targetPath, replace: true })
+        await navigate({ to: targetPath, replace: true })
 
-        return `Вітаємо, ${data.email}!`
-      },
-      error: 'Error',
-    })
+        toast.success(
+          `Вітаємо, ${result.user.displayName || result.user.callsign}!`
+        )
+        return
+      }
+
+      // Якщо 2FA увімкнено – переходимо на сторінку OTP
+      // tempAccessToken будем передавати через search
+      await navigate({
+        to: '/otp',
+        search: {
+          token: result.tempAccessToken,
+          redirect: redirectTo || '/',
+        },
+        replace: true,
+      })
+
+      toast.message('Введіть одноразовий код із додатку аутентифікації')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Не вдалося увійти'
+      toast.error(msg)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -89,25 +121,34 @@ export function UserAuthForm({
       >
         <FormField
           control={form.control}
-          name='email'
+          name='callsign'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Позивний</FormLabel>
               <FormControl>
-                <Input placeholder='name@example.com' {...field} />
+                <Input
+                  placeholder='Напр. VORON'
+                  autoComplete='username'
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name='password'
           render={({ field }) => (
             <FormItem className='relative'>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Пароль</FormLabel>
               <FormControl>
-                <PasswordInput placeholder='********' {...field} />
+                <PasswordInput
+                  placeholder='********'
+                  autoComplete='current-password'
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
               <Link
@@ -119,6 +160,7 @@ export function UserAuthForm({
             </FormItem>
           )}
         />
+
         <Button className='mt-2' disabled={isLoading}>
           {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
           Увійти

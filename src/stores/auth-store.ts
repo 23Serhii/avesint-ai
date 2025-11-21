@@ -1,13 +1,15 @@
 import { create } from 'zustand'
 import { getCookie, setCookie, removeCookie } from '@/lib/cookies'
+import { type Role } from '@/components/layout/types.ts'
 
 const ACCESS_TOKEN = 'thisisjustarandomstring'
 
 interface AuthUser {
   accountNo: string
   email: string
-  role: string[]
+  role: Role
   exp: number
+  isTwoFactorEnabled?: boolean
 }
 
 interface AuthState {

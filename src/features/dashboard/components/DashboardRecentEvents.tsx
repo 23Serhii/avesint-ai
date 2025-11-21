@@ -1,8 +1,8 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { events } from '@/features/events/data/events'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.tsx'
+import { events } from '@/features/events/data/events.ts'
+import { Badge } from '@/components/ui/badge.tsx'
 
 export function DashboardRecentEvents() {
   const recent = events.slice(0, 5)
